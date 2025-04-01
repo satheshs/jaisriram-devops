@@ -79,7 +79,7 @@ pipeline {
     //     DOCKER_REGISTRY_USER = credentials("DockerRegistryUsername")
     //     DOCKER_REGISTRY_PASS = credentials("DockerRegistryPassword")
     // }
-    agent none
+    agent any
     options {
     buildDiscarder(logRotator(numToKeepStr: '3'))
      }
