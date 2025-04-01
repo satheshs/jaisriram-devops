@@ -74,8 +74,6 @@ def uatRemove(){
     return "docker service rm ${productName}"
 }
 
-
---env NODE_ENV=production --env USE_DB_AUTH=true --env MONGO_USERNAME=admin --env MONGO_PASSWORD=admin123 --env MONGO_CONN_STR="mongodb://admin:admin123@mongo:27017/mydatabase?authSource=admin"
 pipeline {
     // environment {
     //     DOCKER_REGISTRY_USER = credentials("DockerRegistryUsername")
