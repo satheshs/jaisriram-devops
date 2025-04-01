@@ -174,7 +174,7 @@ pipeline {
                 steps {
                     script {
                         sh 'docker pull aquasec/trivy'
-                        sh "docker login -u ${DOCKER_REGISTRY_USER} -p ${DOCKER_REGISTRY_PASS} ${dockerRegistryUrl}"
+                        // sh "docker login -u ${DOCKER_REGISTRY_USER} -p ${DOCKER_REGISTRY_PASS} ${dockerRegistryUrl}"
                         def trivyOutput = sh(
                             script: "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --no-progress ${getComputedImageFullName()} ",
                             returnStdout: true
