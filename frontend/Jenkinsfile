@@ -204,7 +204,7 @@ pipeline {
                     //sh "echo $DOCKER_REGISTRY_PASS | docker login -u $DOCKER_REGISTRY_USER --password-stdin ${dockerRegistryUrl}"
                     //sh "docker pull ${getComputedImageFullName()} "
                     sh 'pwd'
-                    sh "docker service create -d  --name ${productName}  -p 80:80  -e REACT_APP_BACKEND_URL='http://128.24.113.7:9091/api/tasks' ${getComputedImageFullName()}"
+                    sh "docker service create -d  --name ${productName}  -p 9090:80  -e REACT_APP_BACKEND_URL='http://128.24.113.7:9091/api/tasks' ${getComputedImageFullName()}"
                     getBranchParentDir() 
                  
             }
