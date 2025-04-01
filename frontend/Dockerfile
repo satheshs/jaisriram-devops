@@ -20,4 +20,4 @@ RUN npm run build
 # Specify the command to run when the container starts
 # CMD [ "npm", "start" ]
 
-RUN ls -lrt
+RUN ls -lrt build/
