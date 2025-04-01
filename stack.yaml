@@ -1,0 +1,61 @@
+version: "3.8"
+
+volumes:
+  mongo_data:
+
+services:
+  mongo:
+    image: mongo:latest
+    networks:
+      - webapp-network
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin123
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  backend:
+    image: backend:1
+    networks:
+      - webapp-network
+    environment:
+      - NODE_ENV=production
+      - USE_DB_AUTH=true
+      - MONGO_USERNAME=admin
+      - MONGO_PASSWORD=admin123
+      - MONGO_CONN_STR=mongodb://admin:admin123@128.24.113.7:27017/mydatabase?authSource=admin
+    ports:
+      - "9091:8080"
+    depends_on:
+      - mongo
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+
+  frontend:
+    image: frontend:1
+    networks:
+      - webapp-network
+    environment:
+      - REACT_APP_BACKEND_URL=http://128.24.113.7:9091/api/tasks
+    ports:
+      - "3001:3000"
+    depends_on:
+      - backend
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+
+networks:
+  webapp-network:
+    driver: overlay
+    attachable: true
+
+
+
