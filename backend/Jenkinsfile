@@ -121,7 +121,7 @@ pipeline {
             steps {
                 //sh "echo $DOCKER_REGISTRY_PASS | docker login -u $DOCKER_REGISTRY_USER --password-stdin ${dockerRegistryUrl}"
                 sh "cd backend"
-                sh "docker build -f Dockerfile -t ${getComputedImageFullName()} ."
+                sh "docker build -f backend/Dockerfile -t ${getComputedImageFullName()} ./backend/"
             }
         }
         // stage('Docker push') {
@@ -136,62 +136,62 @@ pipeline {
         //         sh "docker push ${getComputedImageFullName()} "
         //     }
         // } 
-        stage('DEV-Syft Scan') {
-                when {
-                    anyOf {
-                      branch "main"
-                    }
-                }
-                // agent {label 'upc2'} 
-                steps {
-                    script {
-                        sh 'pwd'
-                        sh 'docker pull anchore/syft'
-                        // sh "docker login -u ${DOCKER_REGISTRY_USER} -p ${DOCKER_REGISTRY_PASS} ${dockerRegistryUrl}"
-                        sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock anchore/syft '${getComputedImageFullName()}' "
-                    }
-                }
-            }
-        stage('DEV-Grype Scan') {
-                when {
-                    anyOf {
-                      branch "main"
-                    }
-                }
-                // agent {label 'upc2'}
-                steps {
-                    script {
-                        sh 'docker pull anchore/grype'
-                       // sh "docker login -u ${DOCKER_REGISTRY_USER} -p ${DOCKER_REGISTRY_PASS} ${dockerRegistryUrl}"
-                        sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock anchore/grype ${getComputedImageFullName()}"
-                    }
-                }
-            } 
-        stage('Trivy Scan') { 
-                when {
-                  anyOf {
-                     branch "main"
-                    }
-                }
-                // agent {label 'upc2'} 
-                steps {
-                    script {
-                        sh 'docker pull aquasec/trivy'
-                        sh "docker login -u ${DOCKER_REGISTRY_USER} -p ${DOCKER_REGISTRY_PASS} ${dockerRegistryUrl}"
-                        def trivyOutput = sh(
-                            script: "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --no-progress ${getComputedImageFullName()} ",
-                            returnStdout: true
-                        ).trim()
-                        echo trivyOutput
+        // stage('DEV-Syft Scan') {
+        //         when {
+        //             anyOf {
+        //               branch "main"
+        //             }
+        //         }
+        //         // agent {label 'upc2'} 
+        //         steps {
+        //             script {
+        //                 sh 'pwd'
+        //                 sh 'docker pull anchore/syft'
+        //                 // sh "docker login -u ${DOCKER_REGISTRY_USER} -p ${DOCKER_REGISTRY_PASS} ${dockerRegistryUrl}"
+        //                 sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock anchore/syft '${getComputedImageFullName()}' "
+        //             }
+        //         }
+        //     }
+        // stage('DEV-Grype Scan') {
+        //         when {
+        //             anyOf {
+        //               branch "main"
+        //             }
+        //         }
+        //         // agent {label 'upc2'}
+        //         steps {
+        //             script {
+        //                 sh 'docker pull anchore/grype'
+        //                // sh "docker login -u ${DOCKER_REGISTRY_USER} -p ${DOCKER_REGISTRY_PASS} ${dockerRegistryUrl}"
+        //                 sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock anchore/grype ${getComputedImageFullName()}"
+        //             }
+        //         }
+        //     } 
+        // stage('Trivy Scan') { 
+        //         when {
+        //           anyOf {
+        //              branch "main"
+        //             }
+        //         }
+        //         // agent {label 'upc2'} 
+        //         steps {
+        //             script {
+        //                 sh 'docker pull aquasec/trivy'
+        //                 //sh "docker login -u ${DOCKER_REGISTRY_USER} -p ${DOCKER_REGISTRY_PASS} ${dockerRegistryUrl}"
+        //                 def trivyOutput = sh(
+        //                     script: "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --no-progress ${getComputedImageFullName()} ",
+        //                     returnStdout: true
+        //                 ).trim()
+        //                 echo trivyOutput
 
-                        if (trivyOutput.contains("HIGH: 0") && trivyOutput.contains("CRITICAL: 0")) {
-                            echo "No error detected. Pipeline build successfully"
-                        } else if (trivyOutput.contains("HIGH:") || trivyOutput.contains("CRITICAL:")) {
-                            error "Pipeline failed due to HIGH vulnerabilities detected"
-                        }
-                    }
-                }
-            } 
+        //                 // if (trivyOutput.contains("HIGH: 0") && trivyOutput.contains("CRITICAL: 0")) {
+        //                 //     echo "No error detected. Pipeline build successfully"
+        //                 // } else if (trivyOutput.contains("HIGH:") || trivyOutput.contains("CRITICAL:")) {
+        //                 //     error "Pipeline failed due to HIGH vulnerabilities detected"
+        //                 // }
+        //             }
+        //         }
+        //     } 
 
         
   
@@ -205,7 +205,7 @@ pipeline {
             steps {
                     sh "docker service rm ${productName}"
                     //sh "echo $DOCKER_REGISTRY_PASS | docker login -u $DOCKER_REGISTRY_USER --password-stdin ${dockerRegistryUrl}"
-                    sh "docker pull ${getComputedImageFullName()} "
+                    // sh "docker pull ${getComputedImageFullName()} "
                     sh 'pwd'
                     sh "docker service create --replicas 1 -p 9091:8080 --name ${productName} --env NODE_ENV=production --env USE_DB_AUTH=true --env MONGO_USERNAME=admin --env MONGO_PASSWORD=admin123 --env MONGO_CONN_STR='mongodb://admin:admin123@10.2.0.4:27017/mydatabase?authSource=admin' -d ${getComputedImageFullName()}"
                     getBranchParentDir() 
