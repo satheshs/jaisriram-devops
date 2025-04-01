@@ -118,8 +118,7 @@ pipeline {
             // agent { label 'upc2' }
             steps {
                 //sh "echo $DOCKER_REGISTRY_PASS | docker login -u $DOCKER_REGISTRY_USER --password-stdin ${dockerRegistryUrl}"
-                sh "cd frontend"
-                sh "docker build -f Dockerfile -t ${getComputedImageFullName()} ."
+                sh "docker build -f frontend/Dockerfile -t ${getComputedImageFullName()} ./frontend/"
             }
         }
         // stage('Docker push') {
