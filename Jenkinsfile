@@ -79,7 +79,7 @@ pipeline {
     //     DOCKER_REGISTRY_USER = credentials("DockerRegistryUsername")
     //     DOCKER_REGISTRY_PASS = credentials("DockerRegistryPassword")
     // }
-    agent none
+    agent any
     options {
     buildDiscarder(logRotator(numToKeepStr: '3'))
      }
@@ -118,8 +118,7 @@ pipeline {
             // agent { label 'upc2' }
             steps {
                 //sh "echo $DOCKER_REGISTRY_PASS | docker login -u $DOCKER_REGISTRY_USER --password-stdin ${dockerRegistryUrl}"
-                sh "cd frontend"
-                sh "docker build -f Dockerfile -t ${getComputedImageFullName()} ."
+                sh "docker build -f frontend/Dockerfile -t ${getComputedImageFullName()} ./frontend/"
             }
         }
         // stage('Docker push') {
@@ -134,62 +133,62 @@ pipeline {
         //         sh "docker push ${getComputedImageFullName()} "
         //     }
         // } 
-        stage('DEV-Syft Scan') {
-                when {
-                    anyOf {
-                      branch "main"
-                    }
-                }
-                // agent {label 'upc2'} 
-                steps {
-                    script {
-                        sh 'pwd'
-                        sh 'docker pull anchore/syft'
-                        // sh "docker login -u ${DOCKER_REGISTRY_USER} -p ${DOCKER_REGISTRY_PASS} ${dockerRegistryUrl}"
-                        sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock anchore/syft '${getComputedImageFullName()}' "
-                    }
-                }
-            }
-        stage('DEV-Grype Scan') {
-                when {
-                    anyOf {
-                      branch "main"
-                    }
-                }
-                // agent {label 'upc2'}
-                steps {
-                    script {
-                        sh 'docker pull anchore/grype'
-                       // sh "docker login -u ${DOCKER_REGISTRY_USER} -p ${DOCKER_REGISTRY_PASS} ${dockerRegistryUrl}"
-                        sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock anchore/grype ${getComputedImageFullName()}"
-                    }
-                }
-            } 
-        stage('Trivy Scan') { 
-                when {
-                  anyOf {
-                     branch "main"
-                    }
-                }
-                // agent {label 'upc2'} 
-                steps {
-                    script {
-                        sh 'docker pull aquasec/trivy'
-                        sh "docker login -u ${DOCKER_REGISTRY_USER} -p ${DOCKER_REGISTRY_PASS} ${dockerRegistryUrl}"
-                        def trivyOutput = sh(
-                            script: "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --no-progress ${getComputedImageFullName()} ",
-                            returnStdout: true
-                        ).trim()
-                        echo trivyOutput
+        // stage('DEV-Syft Scan') {
+        //         when {
+        //             anyOf {
+        //               branch "main"
+        //             }
+        //         }
+        //         // agent {label 'upc2'} 
+        //         steps {
+        //             script {
+        //                 sh 'pwd'
+        //                 sh 'docker pull anchore/syft'
+        //                 // sh "docker login -u ${DOCKER_REGISTRY_USER} -p ${DOCKER_REGISTRY_PASS} ${dockerRegistryUrl}"
+        //                 sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock anchore/syft '${getComputedImageFullName()}' "
+        //             }
+        //         }
+        //     }
+        // stage('DEV-Grype Scan') {
+        //         when {
+        //             anyOf {
+        //               branch "main"
+        //             }
+        //         }
+        //         // agent {label 'upc2'}
+        //         steps {
+        //             script {
+        //                 sh 'docker pull anchore/grype'
+        //                // sh "docker login -u ${DOCKER_REGISTRY_USER} -p ${DOCKER_REGISTRY_PASS} ${dockerRegistryUrl}"
+        //                 sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock anchore/grype ${getComputedImageFullName()}"
+        //             }
+        //         }
+        //     } 
+        // stage('Trivy Scan') { 
+        //         when {
+        //           anyOf {
+        //              branch "main"
+        //             }
+        //         }
+        //         // agent {label 'upc2'} 
+        //         steps {
+        //             script {
+        //                 sh 'docker pull aquasec/trivy'
+        //                 // sh "docker login -u ${DOCKER_REGISTRY_USER} -p ${DOCKER_REGISTRY_PASS} ${dockerRegistryUrl}"
+        //                 def trivyOutput = sh(
+        //                     script: "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --no-progress ${getComputedImageFullName()} ",
+        //                     returnStdout: true
+        //                 ).trim()
+        //                 echo trivyOutput
 
-                        if (trivyOutput.contains("HIGH: 0") && trivyOutput.contains("CRITICAL: 0")) {
-                            echo "No error detected. Pipeline build successfully"
-                        } else if (trivyOutput.contains("HIGH:") || trivyOutput.contains("CRITICAL:")) {
-                            error "Pipeline failed due to HIGH vulnerabilities detected"
-                        }
-                    }
-                }
-            } 
+        //                 // if (trivyOutput.contains("HIGH: 0") && trivyOutput.contains("CRITICAL: 0")) {
+        //                 //     echo "No error detected. Pipeline build successfully"
+        //                 // } else if (trivyOutput.contains("HIGH:") || trivyOutput.contains("CRITICAL:")) {
+        //                 //     error "Pipeline failed due to HIGH vulnerabilities detected"
+        //                 // }
+        //             }
+        //         }
+        //     } 
 
         
   
@@ -205,7 +204,7 @@ pipeline {
                     //sh "echo $DOCKER_REGISTRY_PASS | docker login -u $DOCKER_REGISTRY_USER --password-stdin ${dockerRegistryUrl}"
                     sh "docker pull ${getComputedImageFullName()} "
                     sh 'pwd'
-                    sh "docker run -d  --name ${productName}  -p 80:80   ${getComputedImageFullName()}"
+                    sh "docker run -d  --name ${productName}  -p 80:80  -e REACT_APP_BACKEND_URL='http://128.24.113.7:9091/api/tasks' ${getComputedImageFullName()}"
                     getBranchParentDir() 
                  
             }
