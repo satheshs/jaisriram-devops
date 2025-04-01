@@ -16,5 +16,8 @@ COPY . .
 # Exposing Port to the container
 EXPOSE 3000
 
+RUN npm run build
 # Specify the command to run when the container starts
-CMD [ "npm", "start" ]
+# CMD [ "npm", "start" ]
+
+RUN ls -lrt
