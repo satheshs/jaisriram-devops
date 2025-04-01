@@ -45,7 +45,7 @@ def getConfigValue(name) {
 tagBuildNumber = currentBuild.getNumber()
 def getComputedImageFullName() {
     // rawVersion = getVersionFromGitCommit()
-    return "${dockerRegistryUrl}/${dockerImageName}:${tagBuildNumber}"
+    return "${dockerImageName}:${tagBuildNumber}"
     //return "${dockerRegistryUrl}/${dockerImageName}:${tagBuildNumber}"
 }
 
