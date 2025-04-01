@@ -1,5 +1,5 @@
 # Use the official Node.js 14 image as a base image
-FROM node:14
+FROM node:14 as node
 
 # Set the working directory in the container
 WORKDIR /usr/src/app
@@ -20,4 +20,6 @@ RUN npm run build
 # Specify the command to run when the container starts
 # CMD [ "npm", "start" ]
 
-RUN ls -lrt build/
+FROM nginx:alpine
+COPY --from=node ./build /usr/share/nginx/html
+COPY ./ui/nginx.conf /etc/nginx/conf.d/default.conf
