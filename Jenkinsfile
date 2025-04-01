@@ -1,0 +1,220 @@
+
+// The URL of the Docker registry images will be pushed into during the build process.
+dockerRegistryUrl = "jaisriram"
+
+// The name of the Docker image we'll push.
+dockerImageName = "frontend"
+
+// The name of the product. Assumed to be the name of the Git repo. Also used in creating the messages for sending to the Slack channel.
+productName = "frontend"
+
+
+// Values to use for steps in each SDLC lane.
+config = [
+    "development": [
+        "requiresConfirmation": false
+    ],
+    "qa": [
+        "requiresConfirmation": false
+    ],    
+    "master": [
+        "requiresConfirmation": false
+    ]
+    ]
+
+def getBranchParentDir() {
+    rawBranch = env.BRANCH_NAME
+    echo rawBranch
+
+    startIndex = rawBranch.indexOf('/')
+
+    if (startIndex == -1) {
+        return rawBranch
+    }
+
+    return rawBranch.substring(0, startIndex)
+}
+
+def getConfigValue(name) {
+    configHash = config[getBranchParentDir()]
+    if (configHash == null) {
+        return ""
+    }
+    return configHash[name]
+}
+tagBuildNumber = currentBuild.getNumber()
+def getComputedImageFullName() {
+    // rawVersion = getVersionFromGitCommit()
+    return "${dockerRegistryUrl}/${dockerImageName}:${tagBuildNumber}"
+    //return "${dockerRegistryUrl}/${dockerImageName}:${tagBuildNumber}"
+}
+
+// def getVersionFromGitCommit() {
+//     //git_commit = sh ( script: 'git describe --abbrev=0 --tags',
+//     git_commit = sh ( script: 'git rev-parse --short=9 HEAD',
+//     returnStdout: true
+//     ).trim()
+//     echo "The tag is $git_commit"
+//     return "$git_commit"
+// }
+ 
+
+def devDeploy() {
+    return "ls -lrt"
+    } 
+def devRemove(){
+    return "docker service rm ${productName}"
+}
+
+
+def uatDeploy() {
+    return "docker service create --replicas 3 --name ${productName} -e DEBUG='1' -e API_HOST='0.0.0.0' -e API_PORT='1235' -e ELASTIC_IP='21.0.1.7:9200' -e TF_SERVING_IP='http://21.0.1.7:8501' -e GOOGLE_CREDS_JSON='/home/rrde/gocr.json' -e REMOTE_DIR='/home/rrde/output/140521/' --mount type=bind,source=/root/gocr.json,target=/home/rrde/gocr.json -p 6004:1235 -d ${getComputedImageFullName()}"
+    } 
+def uatRemove(){
+    return "docker service rm ${productName}"
+}
+
+pipeline {
+    // environment {
+    //     DOCKER_REGISTRY_USER = credentials("DockerRegistryUsername")
+    //     DOCKER_REGISTRY_PASS = credentials("DockerRegistryPassword")
+    // }
+    agent none
+    options {
+    buildDiscarder(logRotator(numToKeepStr: '3'))
+     }
+    stages {
+        stage('Checkout') {
+            // agent {label 'upc2'}
+            steps {
+                script {
+                    git branch: 'main', credentialsId: 'bitbucket', url: 'https://github.com/satheshs/jaisriram-devops.git'
+                }
+            }
+        }
+        //stage('SonarQube Analysis') {
+          //  when {
+          //      anyOf{
+            //        branch "master"
+            //    }
+           // }
+            //agent {label 'upc2'}
+            //steps {
+              //      script {
+                //        def scannerHome = tool 'SonarQube Scanner'
+                  //      withSonarQubeEnv('sonarqube') {
+                    //        sh "${scannerHome}/bin/sonar-scanner -D sonar.projectKey='ocr-item-classification'"
+                     //   }
+                   // }
+               // }
+            //} 
+
+        stage('Docker Build') {
+            when {
+                anyOf {
+                    branch "main"
+                }
+            }
+            // agent { label 'upc2' }
+            steps {
+                //sh "echo $DOCKER_REGISTRY_PASS | docker login -u $DOCKER_REGISTRY_USER --password-stdin ${dockerRegistryUrl}"
+                sh "cd frontend"
+                sh "docker build -f Dockerfile -t ${getComputedImageFullName()} ."
+            }
+        }
+        // stage('Docker push') {
+        //     when {
+        //         anyOf {
+        //             branch "main"
+        //         }
+        //     }
+        //     // agent { label 'upc2' }
+        //     steps {
+        //         //sh "echo $DOCKER_REGISTRY_PASS | docker login -u $DOCKER_REGISTRY_USER --password-stdin ${dockerRegistryUrl}"
+        //         sh "docker push ${getComputedImageFullName()} "
+        //     }
+        // } 
+        stage('DEV-Syft Scan') {
+                when {
+                    anyOf {
+                      branch "main"
+                    }
+                }
+                // agent {label 'upc2'} 
+                steps {
+                    script {
+                        sh 'pwd'
+                        sh 'docker pull anchore/syft'
+                        // sh "docker login -u ${DOCKER_REGISTRY_USER} -p ${DOCKER_REGISTRY_PASS} ${dockerRegistryUrl}"
+                        sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock anchore/syft '${getComputedImageFullName()}' "
+                    }
+                }
+            }
+        stage('DEV-Grype Scan') {
+                when {
+                    anyOf {
+                      branch "main"
+                    }
+                }
+                // agent {label 'upc2'}
+                steps {
+                    script {
+                        sh 'docker pull anchore/grype'
+                       // sh "docker login -u ${DOCKER_REGISTRY_USER} -p ${DOCKER_REGISTRY_PASS} ${dockerRegistryUrl}"
+                        sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock anchore/grype ${getComputedImageFullName()}"
+                    }
+                }
+            } 
+        stage('Trivy Scan') { 
+                when {
+                  anyOf {
+                     branch "main"
+                    }
+                }
+                // agent {label 'upc2'} 
+                steps {
+                    script {
+                        sh 'docker pull aquasec/trivy'
+                        sh "docker login -u ${DOCKER_REGISTRY_USER} -p ${DOCKER_REGISTRY_PASS} ${dockerRegistryUrl}"
+                        def trivyOutput = sh(
+                            script: "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --no-progress ${getComputedImageFullName()} ",
+                            returnStdout: true
+                        ).trim()
+                        echo trivyOutput
+
+                        if (trivyOutput.contains("HIGH: 0") && trivyOutput.contains("CRITICAL: 0")) {
+                            echo "No error detected. Pipeline build successfully"
+                        } else if (trivyOutput.contains("HIGH:") || trivyOutput.contains("CRITICAL:")) {
+                            error "Pipeline failed due to HIGH vulnerabilities detected"
+                        }
+                    }
+                }
+            } 
+
+        
+  
+        stage('UAT-Deploy') {
+            when {
+                anyOf {
+                    branch "main"
+                }
+            }
+            // agent { label 'upc3' }
+            steps {
+                    sh "docker service rm ${productName}"
+                    //sh "echo $DOCKER_REGISTRY_PASS | docker login -u $DOCKER_REGISTRY_USER --password-stdin ${dockerRegistryUrl}"
+                    sh "docker pull ${getComputedImageFullName()} "
+                    sh 'pwd'
+                    sh "docker run -d  --name ${productName}  -p 80:80   ${getComputedImageFullName()}"
+                    getBranchParentDir() 
+                 
+            }
+            post {
+                always {
+                    echo 'We are going to clean the workspace'
+                    deleteDir() /*clean up our workspace*/ 
+                }
+            }    
+        }
+    }
+}
