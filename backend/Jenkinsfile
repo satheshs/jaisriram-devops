@@ -102,7 +102,7 @@ pipeline {
             steps {
                    script {
                        def scannerHome = tool 'SonarQube Scanner'
-                       withSonarQubeEnv(credentialsId: 'sonar') {
+                       withSonarQubeEnv('sonarqube') {
                            sh "${scannerHome}/bin/sonar-scanner -D sonar.projectKey='backend'"
                        }
                    }
