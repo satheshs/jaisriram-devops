@@ -92,22 +92,22 @@ pipeline {
                 }
             }
         }
-        //stage('SonarQube Analysis') {
-          //  when {
-          //      anyOf{
-            //        branch "master"
-            //    }
-           // }
-            //agent {label 'upc2'}
-            //steps {
-              //      script {
-                //        def scannerHome = tool 'SonarQube Scanner'
-                  //      withSonarQubeEnv('sonarqube') {
-                    //        sh "${scannerHome}/bin/sonar-scanner -D sonar.projectKey='ocr-item-classification'"
-                     //   }
-                   // }
-               // }
-            //} 
+        stage('SonarQube Analysis') {
+           when {
+               anyOf{
+                   branch "main"
+               }
+           }
+            // agent {label 'upc2'}
+            steps {
+                   script {
+                       def scannerHome = tool 'SonarQube Scanner'
+                       withSonarQubeEnv('sonarqube') {
+                           sh "${scannerHome}/bin/sonar-scanner -D sonar.projectKey='frontend'"
+                       }
+                   }
+               }
+            } 
 
         stage('Docker Build') {
             when {
